@@ -14,6 +14,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IMAGE } from '../../Constants';
 import styles from '../../Styles/loginScreenCss';
 import { useFocusEffect } from '@react-navigation/native';
+import {
+  LoginManager,
+  GraphRequest,
+  GraphRequestManager,
+} from 'react-native-fbsdk';
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -22,6 +28,55 @@ const LoginScreen = ({ navigation }) => {
   const [passwordError, setPasswordError] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+
+
+  const fbLogin = resCallback => {
+    LoginManager.logOut();
+    return LoginManager.logInWithPermissions(['email', 'public_profile']).then(
+      result => {
+        console.log('rest===', result);
+        if (
+          result.declinedPermissions &&
+          result.declinedPermissions.includes('email')
+        ) {
+          resCallback({message: 'Email is required'});
+        }
+
+        if (result.isCancelled) {
+          console.log('error');
+        } else {
+          const infoRequest = new GraphRequest(
+            '/me?fileds=email,name,picture,friend',
+            null,
+            resCallback,
+          );
+          new GraphRequestManager().addRequest(infoRequest).start();
+        }
+      },
+      function (error) {
+        console.log('login fail error' + error);
+      },
+    );
+  };
+
+  const onFbLogin = async () => {
+    try {
+      await fbLogin(_responseInfoCallBack);
+    } catch (error) {
+      console.log('error rised', error);
+    }
+  };
+
+  
+  const _responseInfoCallBack = async (error, result) => {
+    if (error) {
+      console.log('error top', error);
+      return;
+    } else {
+      const userData = result;
+      console.log('fb data ++', userData);
+    }
+  };
 
   const clearInputs = () => {
     setEmail('');
@@ -149,7 +204,7 @@ const LoginScreen = ({ navigation }) => {
           <TouchableOpacity style={styles.socialButton}>
             <Image source={IMAGE.GoogleIcon} style={styles.icon} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
+          <TouchableOpacity style={styles.socialButton} onPress={onFbLogin}>
             <Image source={IMAGE.FacebookIcon} style={styles.icon} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialButton}>

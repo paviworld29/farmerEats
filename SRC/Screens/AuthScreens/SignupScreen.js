@@ -11,6 +11,16 @@ import {
 import { IMAGE } from '../../Constants';
 import styles from '../../Styles/loginScreenCss';
 import { useFocusEffect } from '@react-navigation/native';
+import {
+  LoginManager,
+  GraphRequest,
+  GraphRequestManager,
+} from 'react-native-fbsdk';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,6 +31,79 @@ const SignupScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [reEnterPassword, setReEnterPassword] = useState('');
   const [errors, setErrors] = useState({});
+ 
+
+
+  const googleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log('user info', userInfo);
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log(error);
+       
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log(error);
+
+ 
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.log(error);
+        
+      } else {
+        
+        console.log(error);
+      }
+    }
+  };
+
+  const fbLogin = resCallback => {
+    LoginManager.logOut();
+    return LoginManager.logInWithPermissions(['email', 'public_profile']).then(
+      result => {
+        console.log('rest===', result);
+        if (
+          result.declinedPermissions &&
+          result.declinedPermissions.includes('email')
+        ) {
+          resCallback({message: 'Email is required'});
+        }
+
+        if (result.isCancelled) {
+          console.log('error');
+        } else {
+          const infoRequest = new GraphRequest(
+            '/me?fileds=email,name,picture,friend',
+            null,
+            resCallback,
+          );
+          new GraphRequestManager().addRequest(infoRequest).start();
+        }
+      },
+      function (error) {
+        console.log('login fail error' + error);
+      },
+    );
+  };
+
+  const onFbLogin = async () => {
+    try {
+      await fbLogin(_responseInfoCallBack);
+    } catch (error) {
+      console.log('error rised', error);
+    }
+  };
+
+  
+  const _responseInfoCallBack = async (error, result) => {
+    if (error) {
+      console.log('error top', error);
+      return;
+    } else {
+      const userData = result;
+      console.log('fb data ++', userData);
+    }
+  };
 
   const validateInputs = () => {
     const newErrors = {};
@@ -75,16 +158,21 @@ const SignupScreen = ({ navigation }) => {
    
   useFocusEffect(
     useCallback(() => {
-      
+      // Configure Google Sign-In
+      GoogleSignin.configure();
+  
+      // Reset form fields
       setFullName('');
       setEmail('');
       setPhoneNumber('');
       setPassword('');
       setReEnterPassword('');
       setErrors({});
-    }, [])
+  
+       
+    }, []) // Empty dependency array ensures this runs on focus only
   );
-
+  
   return (
     <View style={styles.container}>
       <View>
@@ -97,10 +185,10 @@ const SignupScreen = ({ navigation }) => {
         <Text style={styles.title}>Welcome!</Text>
       </View>
       <View style={styles.socialButtonsContainer}>
-        <TouchableOpacity style={styles.socialButton}>
+        <TouchableOpacity style={styles.socialButton}  onPress={googleLogin}>
           <Image source={IMAGE.GoogleIcon} style={styles.icon} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton}>
+        <TouchableOpacity style={styles.socialButton} onPress={onFbLogin}>
           <Image source={IMAGE.FacebookIcon} style={styles.icon} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.socialButton}>
