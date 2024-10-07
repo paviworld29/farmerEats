@@ -19,6 +19,10 @@ import {
   GraphRequest,
   GraphRequestManager,
 } from 'react-native-fbsdk';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 
 
 const LoginScreen = ({ navigation }) => {
@@ -28,6 +32,31 @@ const LoginScreen = ({ navigation }) => {
   const [passwordError, setPasswordError] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+
+
+  const googleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log('user info', userInfo);
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log(error);
+       
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log(error);
+
+ 
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.log(error);
+        
+      } else {
+        
+        console.log(error);
+      }
+    }
+  };
+
 
 
   const fbLogin = resCallback => {
@@ -85,6 +114,7 @@ const LoginScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
+      GoogleSignin.configure();
       clearInputs();
       return () => {};
     }, [])
@@ -201,7 +231,7 @@ const LoginScreen = ({ navigation }) => {
 
         <Text style={styles.orText}>Or login with</Text>
         <View style={styles.socialButtonsContainer}>
-          <TouchableOpacity style={styles.socialButton}>
+          <TouchableOpacity style={styles.socialButton} onPress={googleLogin}>
             <Image source={IMAGE.GoogleIcon} style={styles.icon} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialButton} onPress={onFbLogin}>
